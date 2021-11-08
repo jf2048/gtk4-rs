@@ -2,7 +2,7 @@
 
 use crate::ExpressionWatch;
 use glib::translate::*;
-use glib::{IsA, Object, StaticType, Type, Value};
+use glib::{value::FromValue, IsA, Object, StaticType, Type, Value};
 use std::boxed::Box as Box_;
 
 glib::wrapper! {
@@ -118,6 +118,22 @@ impl Expression {
             } else {
                 None
             }
+        }
+    }
+
+    // rustdoc-stripper-ignore-next
+    /// Similar to [`Self::evaluate`] but panics if the value is of a different type.
+    #[doc(alias = "gtk_expression_evaluate")]
+    pub fn evalute_as<V: for<'b> FromValue<'b> + 'static, T: IsA<Object>>(
+        &self,
+        this: Option<&T>,
+    ) -> Option<V> {
+        match self.evaluate(this) {
+            Some(v) => Some(
+                v.get_owned::<V>()
+                    .expect("Failed to evaluate to this value type"),
+            ),
+            None => None,
         }
     }
 
