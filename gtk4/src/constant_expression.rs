@@ -1,7 +1,7 @@
 // Take a look at the license at the top of the repository in the LICENSE file.
 
 use glib::translate::*;
-use glib::{ToValue, Value};
+use glib::{value::FromValue, ToValue, Value};
 
 glib::wrapper! {
     #[derive(Debug)]
@@ -51,6 +51,17 @@ impl ConstantExpression {
                 self.to_glib_none().0,
             ))
         }
+    }
+
+    // rustdoc-stripper-ignore-next
+    /// Similar to [`Self::value`] but panics if the value is of a different type.
+    #[doc(alias = "gtk_constant_expression_get_value")]
+    #[doc(alias = "get_value")]
+    pub fn value_as<V: for<'b> FromValue<'b> + 'static>(&self) -> V {
+        let value = self.value();
+        value
+            .get_owned::<V>()
+            .expect("Failed to get ConstantExpression value")
     }
 }
 
