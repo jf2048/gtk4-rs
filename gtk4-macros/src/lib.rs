@@ -7,6 +7,7 @@
 mod attribute_parser;
 mod composite_template_derive;
 mod util;
+mod widget_actions_attribute;
 
 use proc_macro::TokenStream;
 use proc_macro_error::proc_macro_error;
@@ -89,4 +90,79 @@ pub fn composite_template_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let gen = composite_template_derive::impl_composite_template(&input);
     gen.into()
+}
+
+/// Attribute macro for installing methods as widget actions.
+///
+/// ```no_run
+/// # fn main() {}
+/// use gtk::prelude::*;
+/// use gtk::glib;
+/// use glib::subclass::prelude::*;
+/// use gtk::subclass::prelude::*;
+/// use std::cell::Cell;
+///
+/// glib::wrapper! {
+///     pub struct MyWidget(ObjectSubclass<imp::MyWidget>) @extends gtk::Widget;
+/// }
+///
+/// #[gtk::widget_actions(value)]
+/// impl MyWidget {
+///     pub fn new() -> Self {
+///         glib::Object::new(&[]).expect("Failed to create an instance of MyWidget")
+///     }
+///     #[widget_action(name = "widget.reset-value")]
+///     pub fn reset_value(&self) {
+///         self.impl_().state.set(0);
+///     }
+///     #[widget_action(name = "widget.set-value")]
+///     pub fn set_value(&self, value: i32) {
+///         self.impl_().state.set(value);
+///     }
+/// }
+///
+/// mod imp {
+///     use super::*;
+///
+///     #[derive(Debug, Default)]
+///     pub struct MyWidget {
+///         pub state: Cell<i32>,
+///     }
+///
+///     #[glib::object_subclass]
+///     impl ObjectSubclass for MyWidget {
+///         const NAME: &'static str = "MyWidget";
+///         type Type = super::MyWidget;
+///         type ParentType = gtk::Widget;
+///
+///         fn class_init(klass: &mut Self::Class) {
+///             Self::install_actions(klass);
+///             Self::Type::install_actions(klass);
+///         }
+///     }
+///
+///     #[gtk::widget_actions(subclass)]
+///     impl MyWidget {
+///         #[widget_action(name = "widget.set-value-string", parameter_type = "s")]
+///         fn set_value_string(&self, value: &glib::Variant) {
+///             if let Some(value) = value.str().and_then(|s| s.parse().ok()) {
+///                 self.state.set(value);
+///             }
+///         }
+///     }
+///
+///     impl ObjectImpl for MyWidget {}
+///     impl WidgetImpl for MyWidget {}
+/// }
+///
+/// ```
+#[proc_macro_attribute]
+#[proc_macro_error]
+pub fn widget_actions(attr: TokenStream, item: TokenStream) -> TokenStream {
+    use proc_macro_error::abort_call_site;
+    let args = parse_macro_input!(attr as widget_actions_attribute::Args);
+    match syn::parse::<syn::ItemImpl>(item) {
+        Ok(input) => widget_actions_attribute::impl_widget_actions(input, args).into(),
+        Err(_) => abort_call_site!(widget_actions_attribute::WRONG_PLACE_MSG),
+    }
 }

@@ -9,6 +9,7 @@ use crate::{
     AccessibleRole, BuilderScope, DirectionType, LayoutManager, Orientation, Shortcut,
     SizeRequestMode, Snapshot, StateFlags, SystemSetting, TextDirection, Tooltip, Widget,
 };
+use glib::object::ObjectSubclassIs;
 use glib::subclass::SignalId;
 use glib::translate::*;
 use glib::{Cast, GString, IsA, Variant};
@@ -1316,4 +1317,32 @@ where
 
 pub trait CompositeTemplate: WidgetImpl {
     fn bind_template(klass: &mut Self::Class);
+}
+
+pub type WidgetActionClass<T> = <<T as ObjectSubclassIs>::Subclass as ObjectSubclass>::Class;
+
+pub type WidgetActionDef<T> = (
+    &'static str,
+    fn(&str, &mut WidgetActionClass<T>)
+);
+
+pub trait WidgetActions {
+    type WidgetActionType: ObjectSubclassIs + IsA<Widget>;
+
+    const ACTIONS: &'static [WidgetActionDef<<Self as WidgetActions>::WidgetActionType>];
+
+    // rustdoc-stripper-ignore-next
+    /// Binds the widget actions from this type into `klass`.
+    fn install_actions(klass: &mut WidgetActionClass<<Self as WidgetActions>::WidgetActionType>) {
+        for (name, register) in Self::ACTIONS {
+            register(name, klass);
+        }
+    }
+
+    fn install_actions_as_group(klass: &mut WidgetActionClass<<Self as WidgetActions>::WidgetActionType>, group: &str) {
+        for (name, register) in Self::ACTIONS {
+            let name = format!("{}.{}", group, name);
+            register(&name, klass);
+        }
+    }
 }

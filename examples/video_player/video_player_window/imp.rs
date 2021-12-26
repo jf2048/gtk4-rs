@@ -44,28 +44,30 @@ impl ObjectSubclass for VideoPlayerWindow {
 
     fn class_init(klass: &mut Self::Class) {
         Self::bind_template(klass);
-        klass.install_action(
-            "win.open",
-            None,
-            move |win, _action_name, _action_target| {
-                let self_ = VideoPlayerWindow::from_instance(win);
-                self_.dialog.set_transient_for(Some(win));
-                self_
-                    .dialog
-                    .connect_response(clone!(@weak win => move |d, response| {
-                        if response == gtk::ResponseType::Accept {
-                            win.set_video(d.file().unwrap());
-                        }
-                        d.destroy();
-                    }));
-
-                self_.dialog.show();
-            },
-        );
+        Self::install_actions(klass);
     }
 
     fn instance_init(obj: &glib::subclass::InitializingObject<Self>) {
         obj.init_template();
+    }
+}
+
+#[gtk::widget_actions(subclass)]
+impl VideoPlayerWindow {
+    #[widget_action(name = "win.open")]
+    fn open(&self) {
+        let win = self.instance();
+        self.dialog.set_transient_for(Some(&win));
+        self
+            .dialog
+            .connect_response(clone!(@weak win => move |d, response| {
+                if response == gtk::ResponseType::Accept {
+                    win.set_video(d.file().unwrap());
+                }
+                d.destroy();
+            }));
+
+        self.dialog.show();
     }
 }
 
