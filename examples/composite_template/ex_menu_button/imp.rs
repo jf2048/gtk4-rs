@@ -27,7 +27,7 @@ impl ObjectSubclass for ExMenuButton {
     }
 }
 
-#[gtk::template_callbacks(subclass)]
+#[gtk::template_callbacks]
 impl ExMenuButton {
     #[template_callback]
     fn toggle_toggled(&self, toggle: &gtk::ToggleButton) {

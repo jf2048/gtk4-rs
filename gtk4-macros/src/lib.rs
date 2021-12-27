@@ -121,10 +121,6 @@ pub fn composite_template_derive(input: TokenStream) -> TokenStream {
 /// invoke the function correctly.
 ///
 /// The following options are supported on the attribute:
-/// - `value` which must be used if this is the [`glib::wrapper`] type. Can be used on any type
-/// that implements [`glib::FromValue`].
-/// - `subclass` which must be used if this is the `ObjectSubclass` implementation. Causes `self`
-/// arguments to be interpreted as `<Self as ObjectSubclass>::Type` when calling the callback.
 /// - `functions` makes all callbacks use the `function` attribute by default. (see below)
 ///
 /// The `template_callback` attribute is used to mark methods that will be exposed to the template
@@ -201,7 +197,7 @@ pub fn composite_template_derive(input: TokenStream) -> TokenStream {
 ///         }
 ///     }
 ///
-///     #[gtk::template_callbacks(subclass)]
+///     #[gtk::template_callbacks]
 ///     impl MyWidget {
 ///         #[template_callback]
 ///         fn button_clicked(&self, button: &gtk::Button) {
@@ -223,7 +219,7 @@ pub fn composite_template_derive(input: TokenStream) -> TokenStream {
 ///     pub struct MyWidget(ObjectSubclass<imp::MyWidget>) @extends gtk::Widget, gtk::Box;
 /// }
 ///
-/// #[gtk::template_callbacks(value)]
+/// #[gtk::template_callbacks]
 /// impl MyWidget {
 ///     pub fn new() -> Self {
 ///         glib::Object::new(&[]).expect("Failed to create an instance of MyWidget")

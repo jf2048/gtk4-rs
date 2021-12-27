@@ -11,43 +11,22 @@ pub const WRONG_PLACE_MSG: &str =
 
 mod keywords {
     syn::custom_keyword!(functions);
-    syn::custom_keyword!(value);
-    syn::custom_keyword!(subclass);
     syn::custom_keyword!(function);
     syn::custom_keyword!(name);
 }
 
-pub enum Mode {
-    Value,
-    Subclass,
-}
-
 pub struct Args {
-    mode: Option<Mode>,
     functions: bool,
 }
 
 impl Parse for Args {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let mut args = Self {
-            mode: None,
             functions: false,
         };
         while !input.is_empty() {
             let lookahead = input.lookahead1();
-            if lookahead.peek(keywords::value) {
-                let kw = input.parse::<keywords::value>()?;
-                if args.mode.is_some() {
-                    abort!(kw, "Only one of `value` or `subclass` is allowed");
-                }
-                args.mode = Some(Mode::Value);
-            } else if lookahead.peek(keywords::subclass) {
-                let kw = input.parse::<keywords::subclass>()?;
-                if args.mode.is_some() {
-                    abort!(kw, "Only one of `value` or `subclass` is allowed");
-                }
-                args.mode = Some(Mode::Subclass);
-            } else if lookahead.peek(keywords::functions) {
+            if lookahead.peek(keywords::functions) {
                 input.parse::<keywords::functions>()?;
                 args.functions = true;
             } else {
@@ -74,45 +53,6 @@ impl CallbackArgs {
         match self.is_function(args) {
             true => 1,
             false => 0,
-        }
-    }
-    fn self_value_type(
-        &self,
-        args: &Args,
-        self_ty: &syn::Type,
-        crate_ident: &Ident,
-    ) -> Option<TokenStream> {
-        if self.is_function(args) {
-            None
-        } else {
-            match args.mode {
-                Some(Mode::Value) => Some(quote! { #self_ty }),
-                Some(Mode::Subclass) => Some(quote! {
-                    <#self_ty as #crate_ident::glib::subclass::types::ObjectSubclass>::Type
-                }),
-                None => None,
-            }
-        }
-    }
-    fn self_value_ref(
-        &self,
-        args: &Args,
-        name: &Ident,
-        self_ty: &syn::Type,
-        crate_ident: &Ident,
-    ) -> Option<TokenStream> {
-        if self.is_function(args) {
-            None
-        } else {
-            match args.mode {
-                Some(Mode::Value) => Some(quote! {
-                    let #name = &#name;
-                }),
-                Some(Mode::Subclass) => Some(quote! {
-                    let #name = <#self_ty as #crate_ident::glib::subclass::types::ObjectSubclassExt>::from_instance(&#name);
-                }),
-                None => None,
-            }
         }
     }
 }
@@ -234,14 +174,6 @@ pub fn impl_template_callbacks(mut input: syn::ItemImpl, args: Args) -> TokenStr
                 };
                 match arg {
                     syn::FnArg::Receiver(receiver) => {
-                        let self_value_ty = callback_args.self_value_type(&args, self_ty, &crate_ident)
-                            .unwrap_or_else(|| {
-                                if callback_args.is_function(&args) {
-                                    abort!(receiver, "`self` not allowed with callbacks of type `function`");
-                                } else {
-                                    abort!(receiver, "To use `self`, `template_callbacks` attribute must have option `value` or `subclass`");
-                                }
-                            });
                         if receiver.reference.is_none() || receiver.mutability.is_some() {
                             abort!(receiver, "Receiver must be &self");
                         }
@@ -249,8 +181,13 @@ pub fn impl_template_callbacks(mut input: syn::ItemImpl, args: Args) -> TokenStr
                             "Wrong type for `self` in template callback `{}`: {{:?}}",
                             ident
                         );
+                        let self_value_ty = quote! {
+                            &<#self_ty as #crate_ident::glib::subclass::types::FromObject>::FromObjectType
+                        };
                         let mut unwrap = unwrap_value(self_value_ty, err_msg);
-                        unwrap.append_all(callback_args.self_value_ref(&args, &name, self_ty, &crate_ident).unwrap());
+                        unwrap.append_all(quote! {
+                            let #name = <#self_ty as #crate_ident::glib::subclass::types::FromObject>::from_object(#name);
+                        });
                         unwrap
                     },
                     syn::FnArg::Typed(typed) => {
