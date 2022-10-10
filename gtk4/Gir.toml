@@ -1675,6 +1675,11 @@ status = "generate"
         [[object.function.parameter]]
         name = "size2"
         const = true
+    [[object.function]]
+    pattern = "to_gvariant"
+        [[object.function.parameter]]
+        name = "paper_size"
+        const = true
 
 [[object]]
 name = "Gtk.ParamSpecExpression"

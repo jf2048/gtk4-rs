@@ -147,6 +147,7 @@ mod event_controller_key;
 mod expression_watch;
 mod file_chooser;
 mod file_chooser_dialog;
+mod file_filter;
 mod flow_box;
 mod font_chooser;
 mod functions;
@@ -170,6 +171,8 @@ mod overlay;
 mod pad_action_entry;
 mod pad_controller;
 mod page_range;
+mod page_setup;
+mod paper_size;
 mod param_spec_expression;
 #[cfg(any(target_os = "linux", feature = "dox"))]
 #[cfg_attr(feature = "dox", doc(cfg(target_os = "linux")))]

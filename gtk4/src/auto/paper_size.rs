@@ -236,8 +236,12 @@ impl PaperSize {
     }
 
     #[doc(alias = "gtk_paper_size_to_gvariant")]
-    pub fn to_gvariant(&mut self) -> glib::Variant {
-        unsafe { from_glib_none(ffi::gtk_paper_size_to_gvariant(self.to_glib_none_mut().0)) }
+    pub fn to_gvariant(&self) -> glib::Variant {
+        unsafe {
+            from_glib_none(ffi::gtk_paper_size_to_gvariant(mut_override(
+                self.to_glib_none().0,
+            )))
+        }
     }
 
     #[doc(alias = "gtk_paper_size_to_key_file")]
