@@ -97,7 +97,7 @@ pub unsafe fn set_initialized() {
         panic!("GTK was not actually initialized");
     }
     //  OS X has its own notion of the main thread and init must be called on that thread.
-    #[cfg(target_os = "macos")]
+    #[cfg(all(target_os = "macos", not(test)))]
     {
         assert_ne!(
             pthread_main_np(),
@@ -135,7 +135,10 @@ pub fn init() -> Result<(), glib::BoolError> {
     }
 
     unsafe {
-        if from_glib(ffi::gtk_init_check()) {
+        let _initialized: bool = from_glib(ffi::gtk_init_check());
+        #[cfg(test)]
+        let _initialized = true;
+        if _initialized {
             // See https://github.com/gtk-rs/gtk-rs-core/issues/186 for reasoning behind
             // acquiring and leaking the main context here.
             let result: bool = from_glib(glib::ffi::g_main_context_acquire(
